@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction War - Version 1</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+        }
+        h1 {
+            color: red;
+            font-size: 2.5em;
+            margin: 20px 0;
+        }
+        .button-container {
+            margin: 20px 0;
+        }
+        button {
+            background-color: white;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .rules {
+            display: none;
+            text-align: left;
+            max-width: 90%;
+        }
+        ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .player-hand {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .card {
+            background-color: white;
+            color: black;
+            border: 1px solid #000;
+            border-radius: 5px;
+            width: 50px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .red-player .card {
+            color: red;
+        }
+        .black-player .card {
+            color: black;
+        }
+        .card.selected {
+            background-color: yellow;
+        }
+        .auction-cards {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .draw-pile {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .bid-section {
+            margin: 10px 0;
+            text-align: center;
+        }
+        #bidResult {
+            font-size: 1.5em;
+            margin-top: 20px;
+            color: white;
+        }
+        #pointsWon {
+            font-size: 1.2em;
+            margin-top: 10px;
+            color: white;
+        }
+        #scores {
+            font-size: 1em;
+            margin-top: 10px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auction War</h1>
+    <div class="button-container">
+        <button onclick="showRules()">Show Rules</button>
+        <button onclick="hideRules()">Hide Rules</button>
+        <button onclick="restartGame()">Restart Game</button>
+    </div>
+    <div class="rules" id="rules">
+        <h2>Welcome to Auction War Card Game</h2>
+        <p>Objective: The objective of Auction War is to bid and collect face cards using numbered cards, aiming to score the highest points by the end of the game.</p>
+        <p>Setup:
+            <ol>
+                <li>Use a standard deck of cards.</li>
+                <li>Separate all face cards (jacks, queens, kings, aces) from the numbered cards (2 through 10).</li>
+                <li>Each player receives a set of either all red (hearts and diamonds) numbered cards 2 through 10, or all black (spades and clubs) numbered cards 2 through 10.</li>
+                <li>Shuffle the face cards and place them in a draw pile.</li>
+            </ol>
+        </p>
+        <p>Gameplay:
+            <ol>
+                <li>The game is played in rounds.</li>
+                <li>At the start of each round, draw two face cards from the draw pile and place one face down and the other face up on the table.</li>
+                <li>Each player then secretly selects a number of their numbered cards to bid for the face cards.</li>
+                <li>Players alternate bidding, either matching the previous bid or increasing it by laying down more cards.</li>
+                <li>If the number of bid cards is equal, the players reveal and compare the total of the bid cards.</li>
+                <li>If one player bids more face down cards than the other player, that player wins the auctioned cards and does not have to reveal the value of the bid cards.</li>
+                <li>A player may choose to bid zero cards.</li>
+                <li>Once both players have matched the highest bid or one player has bid more than the other, the bidding cards are revealed, and their totals are calculated.</li>
+                <li>The player with the highest total wins the two face cards.</li>
+                <li>If the totals are tied, play another round to determine the winner.</li>
+                <li>Continue playing rounds until all face cards have been auctioned.</li>
+            </ol>
+        </p>
+        <p>Scoring:
+            <ol>
+                <li>Ace: 1 point</li>
+                <li>Jack: 2 points</li>
+                <li>Queen: 3 points</li>
+                <li>King: 4 points</li>
+            </ol>
+        </p>
+        <p>End of Game:
+            <ol>
+                <li>Once all face cards have been auctioned, players tally their scores.</li>
+                <li>The player with the highest total score wins the game.</li>
+            </ol>
+        </p>
+    </div>
+
+    <h2>Red Player's Hand</h2>
+    <div class="player-hand red-player" id="redPlayerHand"></div>
+    <div class="bid-section">
+        <button onclick="redPlayerBid()">Bid</button>
+        <button onclick="redPlayerNoBid()">No Bid</button>
+        <p>Red Player Bid Total: <span id="redPlayerBidTotal">0</span></p>
+        <p>Number of Cards Selected: <span id="redPlayerCardCount">0</span></p>
+    </div>
+
+    <h2>Black Player's Hand</h2>
+    <div class="player-hand black-player" id="blackPlayerHand"></div>
+    <div class="bid-section">
+        <button onclick="blackPlayerBid()">Bid</button>
+        <button onclick="blackPlayerNoBid()">No Bid</button>
+        <p>Black Player Bid Total: <span id="blackPlayerBidTotal">0</span></p>
+        <p>Number of Cards Selected: <span id="blackPlayerCardCount">0</span></p>
+    </div>
+
+    <div class="auction-cards">
+        <h2>Auction Cards</h2>
+        <div class="player-hand" id="auctionCards"></div>
+    </div>
+
+    <h2>Draw Pile</h2>
+    <div class="draw-pile" id="drawPile"></div>
+
+    <div id="bidResult"></div>
+    <div id="pointsWon"></div>
+    <div id="scores"></div>
+
+    <script>
+        let deck, faceCards, redNumberCards, blackNumberCards, drawPile;
+        let redPlayerBidTotal = 0;
+        let redPlayerCardCount = 0;
+        let blackPlayerBidTotal = 0;
+        let blackPlayerCardCount = 0;
+        let redPlayerBidded = false;
+        let blackPlayerBidded = false;
+        let redPlayerScore = 0;
+        let blackPlayerScore = 0;
+        let auctionCards;
+
+        function initializeGame() {
+            deck = [];
+            faceCards = [];
+            redNumberCards = [];
+            blackNumberCards = [];
+            drawPile = [];
+            redPlayerBidTotal = 0;
+            redPlayerCardCount = 0;
+            blackPlayerBidTotal = 0;
+            blackPlayerCardCount = 0;
+            redPlayerBidded = false;
+            blackPlayerBidded = false;
+            redPlayerScore = 0;
+            blackPlayerScore = 0;
+
+            const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+            const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10'];
+            const faceValues = ['J', 'Q', 'K', 'A'];
+
+            // Create the deck
+            for (let suit of suits) {
+                for (let value of values) {
+                    deck.push({ suit, value: parseInt(value) });
+                }
+                for (let value of faceValues) {
+                    deck.push({ suit, value });
+                }
+            }
+
+            // Separate the face cards and the numbered cards
+            faceCards = deck.filter(card => faceValues.includes(card.value));
+            redNumberCards = deck.filter(card => (card.suit === 'hearts' || card.suit === 'diamonds') && !faceValues.includes(card.value));
+            blackNumberCards = deck.filter(card => (card.suit === 'clubs' || card.suit === 'spades') && !faceValues.includes(card.value));
+
+            // Shuffle the face cards to create the draw pile
+            drawPile = shuffleArray(faceCards.slice());
+
+            // Display initial hands and draw pile
+            displayHand(redNumberCards, 'redPlayerHand');
+            displayHand(blackNumberCards, 'blackPlayerHand');
+            startNewRound();
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function displayHand(hand, elementId) {
+            const handElement = document.getElementById(elementId);
+            handElement.innerHTML = '';
+            hand.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.innerText = `${card.value} ${card.suit.charAt(0).toUpperCase()}`;
+                cardElement.onclick = () => selectCard(cardElement, hand, index);
+                handElement.appendChild(cardElement);
+            });
+        }
+
+        function selectCard(cardElement, hand, index) {
+            hand[index].selected = !hand[index].selected;
+            cardElement.classList.toggle('selected');
+        }
+
+        function startNewRound() {
+            if (drawPile.length < 2) {
+                endGame();
+                return;
+            }
+
+            auctionCards = drawPile.splice(0, 2);
+            displayAuctionCards();
+            displayHand(drawPile, 'drawPile');
+            document.getElementById('bidResult').innerText = '';
+            document.getElementById('pointsWon').innerText = '';
+            document.getElementById('scores').innerHTML = `RED PLAYER SCORE: ${redPlayerScore}<br>BLACK PLAYER SCORE: ${blackPlayerScore}`;
+        }
+
+        function displayAuctionCards() {
+            const auctionElement = document.getElementById('auctionCards');
+            auctionElement.innerHTML = '';
+
+            // Display the first auction card face up
+            const auctionCard1 = document.createElement('div');
+            auctionCard1.className = 'card';
+            auctionCard1.innerText = `${auctionCards[0].value} ${auctionCards[0].suit.charAt(0).toUpperCase()}`;
+            auctionElement.appendChild(auctionCard1);
+
+            // Display the second auction card face down
+            const auctionCard2 = document.createElement('div');
+            auctionCard2.className = 'card';
+            auctionCard2.innerText = '?';
+            auctionElement.appendChild(auctionCard2);
+        }
+
+        function redPlayerBid() {
+            const bid = calculateBid(redNumberCards);
+            redPlayerBidTotal = bid.total;
+            redPlayerCardCount = bid.count;
+            document.getElementById('redPlayerBidTotal').innerText = redPlayerBidTotal;
+            document.getElementById('redPlayerCardCount').innerText = redPlayerCardCount;
+            removeSelectedCards(redNumberCards);
+            displayHand(redNumberCards, 'redPlayerHand');
+            redPlayerBidded = true;
+            determineWinner();
+        }
+
+        function redPlayerNoBid() {
+            clearSelection(redNumberCards);
+            redPlayerBidTotal = 0;
+            redPlayerCardCount = 0;
+            document.getElementById('redPlayerBidTotal').innerText = 0;
+            document.getElementById('redPlayerCardCount').innerText = 0;
+            redPlayerBidded = true;
+            determineWinner();
+        }
+
+        function blackPlayerBid() {
+            const bid = calculateBid(blackNumberCards);
+            blackPlayerBidTotal = bid.total;
+            blackPlayerCardCount = bid.count;
+            document.getElementById('blackPlayerBidTotal').innerText = blackPlayerBidTotal;
+            document.getElementById('blackPlayerCardCount').innerText = blackPlayerCardCount;
+            removeSelectedCards(blackNumberCards);
+            displayHand(blackNumberCards, 'blackPlayerHand');
+            blackPlayerBidded = true;
+            determineWinner();
+        }
+
+        function blackPlayerNoBid() {
+            clearSelection(blackNumberCards);
+            blackPlayerBidTotal = 0;
+            blackPlayerCardCount = 0;
+            document.getElementById('blackPlayerBidTotal').innerText = 0;
+            document.getElementById('blackPlayerCardCount').innerText = 0;
+            blackPlayerBidded = true;
+            determineWinner();
+        }
+
+        function calculateBid(hand) {
+            let total = 0;
+            let count = 0;
+            hand.forEach(card => {
+                if (card.selected) {
+                    total += card.value;
+                    count++;
+                }
+            });
+            return { total, count };
+        }
+
+        function removeSelectedCards(hand) {
+            for (let i = hand.length - 1; i >= 0; i--) {
+                if (hand[i].selected) {
+                    hand.splice(i, 1);
+                }
+            }
+        }
+
+        function clearSelection(hand) {
+            hand.forEach(card => card.selected = false);
+            displayHand(hand, hand === redNumberCards ? 'redPlayerHand' : 'blackPlayerHand');
+        }
+
+        function determineWinner() {
+            if (redPlayerBidded && blackPlayerBidded) {
+                let winner = '';
+                if (redPlayerCardCount > blackPlayerCardCount) {
+                    winner = 'RED';
+                } else if (blackPlayerCardCount > redPlayerCardCount) {
+                    winner = 'BLACK';
+                } else {
+                    if (redPlayerBidTotal > blackPlayerBidTotal) {
+                        winner = 'RED';
+                    } else if (blackPlayerBidTotal > redPlayerBidTotal) {
+                        winner = 'BLACK';
+                    } else {
+                        winner = 'TIE';
+                    }
+                }
+
+                let pointsWon = calculatePoints(auctionCards);
+
+                if (winner === 'RED') {
+                    redPlayerScore += pointsWon;
+                } else if (winner === 'BLACK') {
+                    blackPlayerScore += pointsWon;
+                }
+
+                document.getElementById('bidResult').innerText = winner === 'TIE' ? "RED and BLACK TIED" : `${winner} WINS THE BID`;
+                document.getElementById('pointsWon').innerText = `Points Won: ${pointsWon}`;
+                document.getElementById('scores').innerHTML = `RED PLAYER SCORE: ${redPlayerScore}<br>BLACK PLAYER SCORE: ${blackPlayerScore}`;
+
+                if (drawPile.length === 0) {
+                    endGame();
+                } else {
+                    startNewRound();
+                }
+
+                // Reset bid flags
+                redPlayerBidded = false;
+                blackPlayerBidded = false;
+            }
+        }
+
+        function calculatePoints(cards) {
+            const cardValues = { 'A': 1, 'J': 2, 'Q': 3, 'K': 4 };
+            let points = 0;
+            cards.forEach(card => {
+                if (card.value in cardValues) {
+                    points += cardValues[card.value];
+                }
+            });
+            return points;
+        }
+
+        function endGame() {
+            let endGameMessage = '';
+            if (redPlayerScore > blackPlayerScore) {
+                endGameMessage = `RED PLAYER WINS!!!! with a score of = ${redPlayerScore}`;
+            } else if (blackPlayerScore > redPlayerScore) {
+                endGameMessage = `BLACK PLAYER WINS!!!! with a score of = ${blackPlayerScore}`;
+            } else {
+                endGameMessage = `BOTH PLAYERS TIED!!!! with a score = ${redPlayerScore}`;
+            }
+            document.getElementById('bidResult').innerText = endGameMessage;
+        }
+
+        function restartGame() {
+            redPlayerBidTotal = 0;
+            redPlayerCardCount = 0;
+            blackPlayerBidTotal = 0;
+            blackPlayerCardCount = 0;
+            document.getElementById('redPlayerBidTotal').innerText = redPlayerBidTotal;
+            document.getElementById('redPlayerCardCount').innerText = redPlayerCardCount;
+            document.getElementById('blackPlayerBidTotal').innerText = blackPlayerBidTotal;
+            document.getElementById('blackPlayerCardCount').innerText = blackPlayerCardCount;
+            initializeGame();
+        }
+
+        function showRules() {
+            document.getElementById('rules').style.display = 'block';
+        }
+
+        function hideRules() {
+            document.getElementById('rules').style.display = 'none';
+        }
+
+        // Initial game setup
+        initializeGame();
+    </script>
+</body>
+</html>
